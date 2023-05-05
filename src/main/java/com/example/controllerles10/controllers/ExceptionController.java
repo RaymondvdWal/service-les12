@@ -23,6 +23,4 @@ public class ExceptionController {
     public ResponseEntity<Object> exception(ToManyCharException exception){
         return new ResponseEntity<>(exception.getMessage(), HttpStatus.NOT_ACCEPTABLE);
     }
-
-
 }
