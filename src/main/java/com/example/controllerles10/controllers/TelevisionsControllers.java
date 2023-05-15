@@ -1,80 +1,67 @@
 package com.example.controllerles10.controllers;
 
+import com.example.controllerles10.dtos.TelevisionDto;
 import com.example.controllerles10.exceptions.RecordNotFoundException;
 import com.example.controllerles10.exceptions.ToManyCharException;
-import com.example.controllerles10.model.Television;
-import com.example.controllerles10.repository.TelevisionRepository;
+import com.example.controllerles10.services.TelevisionService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
 
 @RestController
 public class TelevisionsControllers {
 
-    private final TelevisionRepository televisionRepository;
+   private final TelevisionService televisionService;
 
-    public TelevisionsControllers(TelevisionRepository televisionRepository) {
-        this.televisionRepository = televisionRepository;
-    }
-
-    /*private final List<Television> televisions = new ArrayList<>();*/
+   public TelevisionsControllers(TelevisionService televisionService) {
+       this.televisionService = televisionService;
+   }
 
     @GetMapping("/televisions")
-    public List<Television> getAllTelevisions() {
-        return (List<Television>) televisionRepository.findAll();
+    public List<TelevisionDto> getAllTelevisions() {
+        return televisionService.getAllTelevision();
     }
 
     @GetMapping("/televisions/{id}")
-    public ResponseEntity<Television> getTelevision(@PathVariable Long id) throws RecordNotFoundException {
-        Optional<Television> optionalTelevision = televisionRepository.findById(id);
-        if (optionalTelevision.isEmpty()) {
-            throw new RecordNotFoundException("This "+ id +" doesn't exist");
-        }
-           Television television = optionalTelevision.get();
-           return ResponseEntity.ok().body(television);
+    public ResponseEntity<TelevisionDto> getTelevision(@PathVariable Long id) throws RecordNotFoundException {
+        return  ResponseEntity.ok().body(televisionService.getTelevision(id));
     }
 
     @PostMapping("/addTelevision")
-    public ResponseEntity<Television> addTelevision(@RequestBody Television television) throws ToManyCharException {
-        if (television.brand.length() > 20) {
-            throw new ToManyCharException("Mag niet langer dan 20 letters zijn");
+    public ResponseEntity<Object> addTelevision(@Valid @RequestBody TelevisionDto television, BindingResult br) throws ToManyCharException {
+        if (br.hasFieldErrors()) {
+            StringBuilder sb = new StringBuilder();
+            for (FieldError fe : br.getFieldErrors()) {
+                sb.append(fe.getField()).append(": ");
+                sb.append(fe.getDefaultMessage()).append("\n");
+            }
+            return ResponseEntity.badRequest().body(sb.toString());
         }
-        televisionRepository.save(television);
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
-                .buildAndExpand(television.getId()).toUri();
-        return ResponseEntity.created(location).body(television);
+        Long newId = televisionService.createTelevision(television);
+        URI location =
+                ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(newId).toUri();
+        return ResponseEntity.created(location).body(newId);
     }
 
     @PutMapping("/televisions/{id}")
-    public ResponseEntity<Television> updateTelevision(@PathVariable(value = "id") Long televisionId,
-        @Valid @RequestBody Television televisionDetails) throws RecordNotFoundException {
-            Television television = televisionRepository.findById(televisionId).orElseThrow(()
-            -> new RecordNotFoundException("Television not found for this id :: "+televisionId));
+    public ResponseEntity<TelevisionDto> updateTelevision(@PathVariable(value = "id") Long televisionId,
+        @Valid @RequestBody TelevisionDto televisionDto) throws RecordNotFoundException {
+        televisionService.updateTelevision(televisionId, televisionDto);
+        return ResponseEntity.ok().body(televisionDto);
 
-            television.setType(televisionDetails.getType());
-            television.setBrand(televisionDetails.getBrand());
-            television.setPrice(televisionDetails.getPrice());
-            television.setScreenSize(televisionDetails.getScreenSize());
-            final Television updateTelevision = televisionRepository.save(television);
-            return ResponseEntity.ok(updateTelevision);
     }
 
     @DeleteMapping("/televisions/{id}")
-    public Map<String, Boolean> deleteTelevision(@PathVariable(value = "id") Long televisionId)
+    public ResponseEntity<TelevisionDto> deleteTelevision(@PathVariable(value = "id") Long televisionId)
         throws RecordNotFoundException{
-            Television television = televisionRepository.findById(televisionId).orElseThrow(()
-            -> new RecordNotFoundException("Television not found for this id :: "+televisionId));
-
-            televisionRepository.delete(television);
-            Map<String, Boolean> response = new HashMap<>();
-            response.put("deleted", Boolean.TRUE);
-            return response;
+        televisionService.deleteTelevision(televisionId);
+        return ResponseEntity.ok().build();
     }
 }
