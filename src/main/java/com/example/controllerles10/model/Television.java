@@ -4,13 +4,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Setter
 @Getter
 @Entity
 @Table(name = "televisions")
+@NoArgsConstructor
 public class Television {
 
         @Id
@@ -21,4 +21,10 @@ public class Television {
         public double price;
         public int screenSize;
 
+        public Television(String brand, double price, String type, int screenSize) {
+                this.brand = brand;
+                this.price = price;
+                this.type = type;
+                this.screenSize = screenSize;
+        }
 }
